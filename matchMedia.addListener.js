@@ -2,7 +2,11 @@
 (function(){
 	// monkeypatch unsupported addListener/removeListener with polling
 	if( !window.matchMedia( "all" ).addListener ){
-		var oldMM = window.matchMedia;
+		
+		var wMM = window.matchMedia;
+		var oldMM = function(q) {
+			return wMM.call(window,q);
+		}
 		
 		window.matchMedia = function( q ){
 			var ret = oldMM( q ),
@@ -10,21 +14,22 @@
 				last = ret.matches,
 				timer,
 				check = function(){
-					var list = oldMM( q ),
-						unmatchToMatch = list.matches && !last,
-						matchToUnmatch = !list.matches && last;
+					var list = oldMM( q );
                                                 
                                         //fire callbacks only if transitioning to or from matched state
-					if( unmatchToMatch || matchToUnmatch ){
+					if( last != list.matches ){
+						last = list.matches;
 						for( var i =0, il = listeners.length; i< il; i++ ){
-							listeners[ i ].call( ret, list );
+							try { listeners[ i ].call( ret, list ); }
+							catch(ex) { setTimeout(function() { throw ex; },0) }
 						}
 					}
-					last = list.matches;
 				};
 			
 			ret.addListener = function( cb ){
-				listeners.push( cb );
+				if( listeners.indexOf(cb) == -1 ) {
+					listeners.push( cb );
+				}
 				if( !timer ){
 					timer = setInterval( check, 1000 );
 				}
@@ -33,11 +38,11 @@
 			ret.removeListener = function( cb ){
 				for( var i =0, il = listeners.length; i< il; i++ ){
 					if( listeners[ i ] === cb ){
-						listeners.splice( i, 1 );
+						listeners.splice( i, 1 ); break;
 					}
 				}
 				if( !listeners.length && timer ){
-					clearInterval( timer );
+					clearInterval( timer ); timer=undefined;
 				}
 			};
 			
