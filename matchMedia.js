@@ -2,35 +2,25 @@
 
 window.matchMedia = window.matchMedia || (function( doc, undefined ) {
 
-  "use strict";
-
-  var bool,
-      docElem = doc.documentElement,
-      refNode = docElem.firstElementChild || docElem.firstChild,
-      // fakeBody required for <FF4 when executed in <head>
-      fakeBody = doc.createElement( "body" ),
-      div = doc.createElement( "div" );
-
-  div.id = "mq-test-1";
-  div.style.cssText = "position:absolute;top:-100em";
-  fakeBody.style.background = "none";
-  fakeBody.appendChild(div);
-
+  "use strict"; var element;
   return function(q){
 
-    div.innerHTML = "&shy;<style media=\"" + q + "\"> #mq-test-1 { width: 42px; }</style>";
-
-    docElem.insertBefore( fakeBody, refNode );
-    bool = div.offsetWidth === 42;
-    docElem.removeChild( fakeBody );
+    if(!element) {
+        var head = doc.head || doc.documentElement.firstElementChild || doc.getElementsByTagName('head')[0],
+        element = doc.createElement( "style" );
+        element.id = "css-mq-test";
+        element.innerHTML = "#css-mq-test { font-size:666px; }>";
+        head.insertBefore(element,head.firstChild);
+    }
+    
+    element.setAttribute('media', q);
+    var result = (getComputedStyle ? getComputedStyle(element) : element.currentStyle).fontSize !== '666px';
 
     return {
-      matches: bool,
+      matches: result,
       media: q
     };
 
   };
 
 }( document ));
-
-
